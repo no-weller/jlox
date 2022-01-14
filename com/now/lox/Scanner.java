@@ -71,8 +71,13 @@ class Scanner {
         // New line increase the line number
         line++;
         break;
+      case '"': string(); break;
       default:
-        Lox.error(line, "Unexpected character.");
+        if(isDigit(c)) {
+          number();
+        } else {
+          Lox.error(line, "Unexpected character.");
+        }
         break;
     }
   }
@@ -108,10 +113,45 @@ class Scanner {
     return source.charAt(current);
   }
 
-  // private void string() {
-  //   while (peek() != '"' && !isAtEnd()) {
-  //     if (peek() == '\n') line++;
-  //     advance();
-  //   }
-  // }
+  private char peekNext() {
+    if (current + 1 >= source.length()) return '\0';
+    return source.charAt(current + 1);
+  }
+
+  private boolean isDigit(char c) {
+    return c >= '0' && c <= '9';
+  }
+
+  // Literals
+  private void string() {
+    while (peek() != '"' && !isAtEnd()) {
+      if (peek() == '\n') line++;
+      advance();
+    }
+
+    if (isAtEnd()) {
+      Lox.error(line, "Unterminated string.");
+      return;
+    }
+
+    advance(); // The closing ".
+
+    // Trim the surrounding quotes
+    String value = source.substring(start + 1, current - 1);
+    addToken(STRING, value);
+  }
+
+  private void number() {
+    while (isDigit(peek())) advance();
+
+    // Look for a fractional part.
+    if (peek() == '.' && isDigit(peekNext())) {
+      // Consume the "."
+      advance();
+
+      while (isDigit(peek())) advance();
+    }
+
+    addToken(NUMBER, Double.parseDouble(source.substring(start, current)));
+  }
 }
